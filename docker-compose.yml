@@ -1,0 +1,11 @@
+services:
+  web-app:
+    build:
+      context: . # Путь к Dockerfile, если он не в корне
+    ports:
+      - "8000:8000" # Порт, на котором будет доступно приложение
+    volumes:
+      - ./service:/service # Монтируем локальную папку в контейнер(локал/контейнер)
+
+    command: >  # Команда для запуска приложения
+      sh -c "python manage.py runserver 0.0.0.0:8000"
