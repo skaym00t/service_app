@@ -8,6 +8,8 @@ COPY service /service
 WORKDIR /service
 # Порт, который будет использоваться приложением:
 EXPOSE 8000
+# Устанавливаем системные зависимости:
+RUN apk add postgresql-client build-base postgresql-dev
 # Устанавливаем зависимости:
 RUN pip install -r /temp/requirements.txt
 # Cоздаем пользователя для запуска приложения:

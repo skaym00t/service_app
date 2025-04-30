@@ -6,6 +6,21 @@ services:
       - "8000:8000" # Порт, на котором будет доступно приложение
     volumes:
       - ./service:/service # Монтируем локальную папку в контейнер(локал/контейнер)
+    environment:
+      - DB_HOST=database # Имя сервиса базы данных
+      - DB_USER=dbuser # Имя пользователя базы данных
+      - DB_PASSWORD=pass # Пароль пользователя базы данных
+      - DB_NAME=dbname # Имя базы данных
 
     command: >  # Команда для запуска приложения
       sh -c "python manage.py runserver 0.0.0.0:8000"
+
+    depends_on:
+      - database # Зависимость от сервиса базы данных
+
+  database: # Сервис базы данных
+    image: postgres:14.6-alpine # Используем образ PostgreSQL
+    environment: # Переменные окружения для настройки базы данных
+      - POSTGRES_USER=dbuser # Имя пользователя базы данных
+      - POSTGRES_PASSWORD=pass # Пароль пользователя базы данных
+      - POSTGRES_DB=dbname # Имя базы данных
