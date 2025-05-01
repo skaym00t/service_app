@@ -144,3 +144,5 @@ LOGGING = { # Настройки логирования
             'level': 'DEBUG',} # Отладка SQL-запросов
     }} # Настройки логирования
 
+CELERY_BROKER_URL = 'redis://redis:6379/0' # URL для подключения к Redis (Celery)
+
