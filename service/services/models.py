@@ -2,6 +2,7 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 
 from clients.models import Client
+from services.tasks import set_price
 
 
 class Service(models.Model):
@@ -38,6 +39,7 @@ class Subscription(models.Model):
     client = models.ForeignKey(Client, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='Клиент')  # Связь с клиентом
     service = models.ForeignKey(Service, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='Услуга')  # Связь с услугой
     plan = models.ForeignKey(Plan, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='План')  # Связь с планом
+    price = models.PositiveIntegerField(default=0, verbose_name='Цена подписки')  # Цена подписки (по умолчанию 0)
 
     class Meta:  # Опции модели
         verbose_name = 'Подписка'
@@ -45,3 +47,9 @@ class Subscription(models.Model):
 
     def __str__(self):  # Строковое представление
         return f'{self.client.user.username} - {self.service.name} - {self.plan.plan_type}'
+
+    def save(self, *args, save_model=True, **kwargs):  # Переопределяем метод сохранения модели(save_model - для того,
+        # чтобы не сохранять модель при вызове метода save у модели Subscription)
+        if save_model: # Если save_model = True, то сохраняем модель
+            set_price.delay(self.id) # Вызываем задачу Celery для расчета цены подписки(отправляем задачу в очередь)
+        return super().save(*args, **kwargs)  # Вызываем метод save у родительского класса(models.Model)

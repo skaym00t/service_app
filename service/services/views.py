@@ -39,8 +39,8 @@ class SubscriptionView(ReadOnlyModelViewSet):
     # FROM "clients_client"
     # INNER JOIN "auth_user" ON ("clients_client"."user_id" = "auth_user"."id")
     # WHERE "clients_client"."id" IN (1, 2); args=(1, 2))
-    ).annotate(price=F('service__full_price') -
-                F('service__full_price') * (F('plan__discount_percent') / 100.00)) # 2 способ -
+    )#.annotate(price=F('service__full_price') -
+     #          F('service__full_price') * (F('plan__discount_percent') / 100.00)) # 2 способ -
     # Аннотация для получения цены подписки,
     # чтобы не делать лишний запрос к базе данных, а сразу получить цену подписки
     # (аннотация - это создание нового(виртуального) поля в запросе, которое будет доступно в сериализаторе)
@@ -59,7 +59,8 @@ class SubscriptionView(ReadOnlyModelViewSet):
         queryset = self.filter_queryset(self.get_queryset()) # Получаем queryset подписок(результат запроса queryset выше)
         response = super().list(request, *args, **kwargs) # Получаем ответ от родительского метода list
         # (это результат запроса(queryset) к базе данных, который описан в этом классе выше
-        response_data = {'results': response.data} # Создаем словарь с результатами(превращаем список в словарь, ключом которого будет results)
+        response_data = {'results': response.data} # Создаем словарь с результатами
+        # (превращаем список в словарь, ключом которого будет results)
         response_data['total_amount'] = queryset.aggregate(total=Sum('price')).get('total', 0) # Получаем общую сумму подписок или 0, если подписок нет
         # (используем метод aggregate для получения общей суммы подписок по полю price) - вычисление на уровне базы данных
         response.data = response_data # Присваиваем ответу новый словарь с результатами
