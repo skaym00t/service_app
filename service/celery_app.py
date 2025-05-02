@@ -14,6 +14,8 @@ app.conf.broker_url = settings.CELERY_BROKER_URL # Указываем броке
 # CELERY_BROKER_URL нужно прописать в .env файл или в settings.py
 app.autodiscover_tasks() # Автоматически находим задачи в приложениях Django
 
+# ``` Таски Celery ```
+
 @app.task() # Декоратор для создания задачи Celery
 def debug_task(): # Функция задачи(можно использовать любое имя) это пример задачи, которая будет выполняться
     time.sleep(20) # Задержка на 20 секунд

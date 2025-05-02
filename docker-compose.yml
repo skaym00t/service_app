@@ -25,11 +25,11 @@ services:
       - POSTGRES_PASSWORD=pass # Пароль пользователя базы данных
       - POSTGRES_DB=dbname # Имя базы данных
 
-  reddis: # Сервис Redis
+  redis: # Сервис Redis
     image: redis:7.0.5-alpine # Используем образ Redis
     hostname: redis # Имя хоста для контейнера
 
-  worker: # Сервис для фоновых задач
+  worker: # Сервис для фоновых задач Celery
     build:
       context: . # Путь к Dockerfile, если он не в корне
     hostname: worker # Имя хоста для контейнера
@@ -38,6 +38,21 @@ services:
     volumes:
       - ./service:/service # Монтируем локальную папку в контейнер(локал/контейнер)
     links:
-      - reddis # Связываем с сервисом Redis(wоркеры будут использовать Redis для очередей задач)
+      - redis # Связываем с сервисом Redis(wоркеры будут использовать Redis для очередей задач)
     depends_on:
-      - reddis # Зависимость от сервиса Redis(чтобы он был запущен перед запуском воркера)
+      - redis # Зависимость от сервиса Redis(чтобы он был запущен перед запуском воркера)
+
+  flower: # Сервис Flower (интерфейс для мониторинга задач Celery)
+    build:
+      context: . # Путь к Dockerfile, если он не в корне
+    hostname: flower # Имя хоста для контейнера
+    entrypoint: celery # Команда для запуска Celery
+    command: -A celery_app.app flower # Аргументы для команды Celery(запуск Flower)
+    volumes:
+      - ./service:/service # Монтируем локальную папку в контейнер(локал/контейнер)
+    links:
+      - redis
+    depends_on:
+      - redis
+    ports:
+      - "5555:5555" # Порт, на котором будет доступен Flower
