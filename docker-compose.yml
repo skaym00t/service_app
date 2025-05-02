@@ -42,10 +42,11 @@ services:
     depends_on:
       - redis # Зависимость от сервиса Redis(чтобы он был запущен перед запуском воркера)
       - database # Зависимость от сервиса базы данных(чтобы он был запущен перед запуском воркера)
-    environment: # Переменные окружения для настройки базы данных
-      - POSTGRES_USER=dbuser # Имя пользователя базы данных
-      - POSTGRES_PASSWORD=pass # Пароль пользователя базы данных
-      - POSTGRES_DB=dbname # Имя базы данных
+    environment:
+      - DB_HOST=database # Имя сервиса базы данных
+      - DB_USER=dbuser # Имя пользователя базы данных
+      - DB_PASSWORD=pass # Пароль пользователя базы данных
+      - DB_NAME=dbname # Имя базы данных
 
   flower: # Сервис Flower (интерфейс для мониторинга задач Celery)
     build:
