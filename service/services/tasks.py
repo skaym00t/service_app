@@ -1,15 +1,21 @@
 from celery import shared_task
+from celery_singleton import Singleton
+from django.db.models import F
 
 
-
-@shared_task # Декоратор для создания задачи Celery (можно использовать любое имя)
+@shared_task(base=Singleton) # Декоратор для создания задачи Celery (можно использовать любое имя)
 def set_price(subscription_id): # Функция задачи(можно использовать любое имя)
     from services.models import Subscription
+    # Первый способ - получаем подписку по id и сохраняем ее (не рекомендуется, так как это
+    # может вызвать проблемы с производительностью, так как вызываем N+1 запросов к базе данных)
+    # new_price = (subscription.service.full_price -
+    #              subscription.service.full_price * subscription.plan.discount_percent / 100) # Получаем новую цену подписки,
+    # # c вычетом скидки
+    # subscription.price = new_price # Присваиваем новую цену подписки
 
-    subscription = Subscription.objects.get(id=subscription_id) # Получаем подписку по id
-    new_price = (subscription.service.full_price -
-                 subscription.service.full_price * subscription.plan.discount_percent / 100) # Получаем новую цену подписки,
-    # c вычетом скидки
-    subscription.price = new_price # Присваиваем новую цену подписки
+    subscription = Subscription.objects.filter(id=subscription_id).annotate(
+        annotated_price=F('service__full_price') -
+                        F('service__full_price') * (F('plan__discount_percent') / 100.00)).first()
+    # Получаем подписку по id и аннотируем ее, чтобы получить цену подписки с учетом скидки
+    subscription.price = subscription.annotated_price # Присваиваем новую цену подписки
     subscription.save(save_model=False) # Сохраняем подписку(не вызывая метод save у модели Subscription)
-    return "Success"

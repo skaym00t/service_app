@@ -16,6 +16,16 @@ class Service(models.Model):
     def __str__(self):  # Строковое представление
         return f'{self.name} - {self.full_price} руб.'
 
+    def __init__(self, *args, **kwargs):  # Конструктор класса
+        super().__init__(*args, **kwargs)   # Вызываем конструктор родительского класса
+        self.__full_price = self.full_price  # Сохраняем процент скидки в переменной
+
+    def save(self, *args, **kwargs): # Переопределяем метод сохранения модели
+        if self.__full_price != self.full_price:  # Если процент скидки изменился
+            for subscription in self.subscriptions.all():  # Для всех подписок, связанных с планом
+                set_price.delay(subscription.id) # Вызываем задачу Celery для расчета цены подписки
+        return super().save(*args, **kwargs)
+
 class Plan(models.Model):
     PLAN_TYPES = (
         ('full', 'Полный'),
@@ -34,6 +44,17 @@ class Plan(models.Model):
 
     def __str__(self):  # Строковое представление
         return f'{self.plan_type} - {self.discount_percent}%'
+
+    def __init__(self, *args, **kwargs):  # Конструктор класса
+        super().__init__(*args, **kwargs)   # Вызываем конструктор родительского класса
+        self.__discount_percent = self.discount_percent  # Сохраняем процент скидки в переменной
+
+    def save(self, *args, **kwargs): # Переопределяем метод сохранения модели
+        if self.__discount_percent != self.discount_percent:  # Если процент скидки изменился
+            for subscription in self.subscriptions.all():  # Для всех подписок, связанных с планом
+                set_price.delay(subscription.id) # Вызываем задачу Celery для расчета цены подписки
+        return super().save(*args, **kwargs)
+
 
 class Subscription(models.Model):
     client = models.ForeignKey(Client, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='Клиент')  # Связь с клиентом
