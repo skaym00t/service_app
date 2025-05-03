@@ -24,7 +24,7 @@ class ServiceAdmin(admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('client', 'service', 'plan')
+    list_display = ('client', 'service', 'plan', 'price', 'comment')
     list_display_links = ('client',)
     search_fields = ('client__user__username', 'service__name', 'plan__plan_type')
     list_filter = ('client__user__is_active',)

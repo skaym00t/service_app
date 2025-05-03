@@ -48,6 +48,25 @@ services:
       - DB_PASSWORD=pass # Пароль пользователя базы данных
       - DB_NAME=dbname # Имя базы данных
 
+  worker2: # Сервис для фоновых задач Celery
+    build:
+      context: . # Путь к Dockerfile, если он не в корне
+    hostname: worker2 # Имя хоста для контейнера
+    entrypoint: celery # Команда для запуска Celery
+    command: -A celery_app.app worker --loglevel=info # Аргументы для команды Celery(запуск воркера с логированием info)
+    volumes:
+      - ./service:/service # Монтируем локальную папку в контейнер(локал/контейнер)
+    links:
+      - redis # Связываем с сервисом Redis(wоркеры будут использовать Redis для очередей задач)
+    depends_on:
+      - redis # Зависимость от сервиса Redis(чтобы он был запущен перед запуском воркера)
+      - database # Зависимость от сервиса базы данных(чтобы он был запущен перед запуском воркера)
+    environment:
+      - DB_HOST=database # Имя сервиса базы данных
+      - DB_USER=dbuser # Имя пользователя базы данных
+      - DB_PASSWORD=pass # Пароль пользователя базы данных
+      - DB_NAME=dbname # Имя базы данных
+
   flower: # Сервис Flower (интерфейс для мониторинга задач Celery)
     build:
       context: . # Путь к Dockerfile, если он не в корне

@@ -2,7 +2,7 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 
 from clients.models import Client
-from services.tasks import set_price
+from services.tasks import set_price, set_comment
 
 
 class Service(models.Model):
@@ -24,6 +24,7 @@ class Service(models.Model):
         if self.__full_price != self.full_price:  # Если процент скидки изменился
             for subscription in self.subscriptions.all():  # Для всех подписок, связанных с планом
                 set_price.delay(subscription.id) # Вызываем задачу Celery для расчета цены подписки
+                set_comment.delay(subscription.id)  # Вызываем задачу Celery для изменения комментария подписки
         return super().save(*args, **kwargs)
 
 class Plan(models.Model):
@@ -53,6 +54,7 @@ class Plan(models.Model):
         if self.__discount_percent != self.discount_percent:  # Если процент скидки изменился
             for subscription in self.subscriptions.all():  # Для всех подписок, связанных с планом
                 set_price.delay(subscription.id) # Вызываем задачу Celery для расчета цены подписки
+                set_comment.delay(subscription.id) # Вызываем задачу Celery для изменения комментария подписки
         return super().save(*args, **kwargs)
 
 
@@ -61,6 +63,7 @@ class Subscription(models.Model):
     service = models.ForeignKey(Service, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='Услуга')  # Связь с услугой
     plan = models.ForeignKey(Plan, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='План')  # Связь с планом
     price = models.PositiveIntegerField(default=0, verbose_name='Цена подписки')  # Цена подписки (по умолчанию 0)
+    comment = models.CharField(default='', max_length=200, verbose_name='Комментарии') # Комментарии к подписке (по умолчанию пустая строка)
 
     class Meta:  # Опции модели
         verbose_name = 'Подписка'
@@ -73,4 +76,5 @@ class Subscription(models.Model):
         # чтобы не сохранять модель при вызове метода save у модели Subscription)
         if save_model: # Если save_model = True, то сохраняем модель
             set_price.delay(self.id) # Вызываем задачу Celery для расчета цены подписки(отправляем задачу в очередь)
+            set_comment.delay(self.id)  # Вызываем задачу Celery для изменения комментария подписки
         return super().save(*args, **kwargs)  # Вызываем метод save у родительского класса(models.Model)

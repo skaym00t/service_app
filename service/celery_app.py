@@ -9,7 +9,7 @@ from django.conf import settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE','service.settings') # Указываем настройки Django
 
 app = Celery('service') # Создаем экземпляр Celery
-app.config_from_object('django.conf:settings') # Загружаем настройки Django
+app.config_from_object('django.conf:settings', namespace='CELERY') # Загружаем настройки Django
 app.conf.broker_url = settings.CELERY_BROKER_URL # Указываем брокер сообщений
 # CELERY_BROKER_URL нужно прописать в .env файл или в settings.py
 app.autodiscover_tasks() # Автоматически находим задачи в приложениях Django
