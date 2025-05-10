@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'clients.apps.ClientsConfig',
     'services.apps.ServicesConfig',
+    'cachalot'
 ]
 
 MIDDLEWARE = [
@@ -148,3 +149,13 @@ LOGGING = { # Настройки логирования
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_TASK_TRACK_STARTED = True
+
+# Настройки кеширования (используется Redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/0",
+        }
+    }
+
+PRICE_CACHE_NAME = 'price_cache' # Имя кеша для хранения цены подписки

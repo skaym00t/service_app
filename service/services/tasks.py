@@ -2,6 +2,8 @@ import datetime
 
 from celery import shared_task
 from celery_singleton import Singleton
+from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import F
 
@@ -22,6 +24,7 @@ def set_price(subscription_id): # Функция задачи(можно исп�
         # Получаем подписку по id и аннотируем ее, чтобы получить цену подписки с учетом скидки
         subscription.price = subscription.annotated_price # Присваиваем новую цену подписки
         subscription.save(save_model=False) # Сохраняем подписку(не вызывая метод save у модели Subscription)
+    cache.delete(settings.PRICE_CACHE_NAME) # Удаляем кеш цены подписки, чтобы обновить его
 
 @shared_task(base=Singleton) # Декоратор для создания задачи Celery (можно использовать любое имя)
 def set_comment(subscription_id):
@@ -30,3 +33,4 @@ def set_comment(subscription_id):
         subscription = Subscription.objects.select_for_update().get(id=subscription_id) # Получаем подписку по id
         subscription.comment = str(datetime.datetime.now()) # Присваиваем комментарий подписки текущее время
         subscription.save() # Сохраняем подписку
+    cache.delete(settings.PRICE_CACHE_NAME)  # Удаляем кеш цены подписки, чтобы обновить его

@@ -1,7 +1,9 @@
 from django.core.validators import MaxValueValidator
 from django.db import models
+from django.db.models.signals import post_delete
 
 from clients.models import Client
+from services.recievers import delete_cache_total_price
 from services.tasks import set_price, set_comment
 
 
@@ -63,7 +65,7 @@ class Subscription(models.Model):
     service = models.ForeignKey(Service, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='Услуга')  # Связь с услугой
     plan = models.ForeignKey(Plan, related_name='subscriptions', on_delete=models.PROTECT, verbose_name='План')  # Связь с планом
     price = models.PositiveIntegerField(default=0, verbose_name='Цена подписки')  # Цена подписки (по умолчанию 0)
-    comment = models.CharField(default='', max_length=200, verbose_name='Комментарии') # Комментарии к подписке (по умолчанию пустая строка)
+    comment = models.CharField(default='', max_length=200, db_index=True, verbose_name='Комментарии',) # Комментарии к подписке (по умолчанию пустая строка)
 
     class Meta:  # Опции модели
         verbose_name = 'Подписка'
@@ -74,7 +76,12 @@ class Subscription(models.Model):
 
     def save(self, *args, save_model=True, **kwargs):  # Переопределяем метод сохранения модели(save_model - для того,
         # чтобы не сохранять модель при вызове метода save у модели Subscription)
-        if save_model: # Если save_model = True, то сохраняем модель
+        creating = not bool(self.id) # Флаг для проверки, создается ли новая подписка или обновляется существующая
+        result = super().save(*args, **kwargs) # Вызываем метод save у родительского класса(models.Model)
+
+        if save_model or creating: # Если сохраняем модель или создаем новую подписку
             set_price.delay(self.id) # Вызываем задачу Celery для расчета цены подписки(отправляем задачу в очередь)
             set_comment.delay(self.id)  # Вызываем задачу Celery для изменения комментария подписки
-        return super().save(*args, **kwargs)  # Вызываем метод save у родительского класса(models.Model)
+        return result
+
+post_delete.connect(delete_cache_total_price, sender=Subscription) # Подключаем сигнал для удаления кеша при удалении подписки

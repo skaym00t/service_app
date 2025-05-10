@@ -1,7 +1,9 @@
+from django.core.cache import cache
 from django.db.models import Prefetch, F, Sum
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from clients.models import Client
+from django.conf import settings
 from services.models import Subscription
 from services.serializers import SubscriptionSerializer
 
@@ -59,9 +61,22 @@ class SubscriptionView(ReadOnlyModelViewSet):
         queryset = self.filter_queryset(self.get_queryset()) # Получаем queryset подписок(результат запроса queryset выше)
         response = super().list(request, *args, **kwargs) # Получаем ответ от родительского метода list
         # (это результат запроса(queryset) к базе данных, который описан в этом классе выше
+
+        # добавили в settings.py PRICE_CACHE_NAME = 'price_cache' - имя кэша для хранения цены подписок
+        # импортируем PRICE_CACHE_NAME из настроек django.conf.settings
+        price_cahe = cache.get(settings.PRICE_CACHE_NAME) # Получаем кэшированную цену из кеша
+
+        if price_cahe: # Если цена есть в кеше
+            total_price = price_cahe # Получаем цену из кеша (для экономии ресурсов)
+        else: # Если цены нет в кеше
+            total_price = queryset.aggregate(total=Sum('price')).get('total', 0) # Получаем общую сумму подписок или 0,
+            # если подписок нет (используем метод aggregate для получения общей суммы подписок по полю price)
+            cache.set(settings.PRICE_CACHE_NAME, total_price, 60 * 60) # Сохраняем цену в кеше на 10 секунд
+
         response_data = {'results': response.data} # Создаем словарь с результатами
         # (превращаем список в словарь, ключом которого будет results)
-        response_data['total_amount'] = queryset.aggregate(total=Sum('price')).get('total', 0) # Получаем общую сумму подписок или 0, если подписок нет
+        response_data['total_amount'] = total_price
+        # queryset.aggregate(total=Sum('price')).get('total', 0) # Получаем общую сумму подписок или 0, если подписок нет
         # (используем метод aggregate для получения общей суммы подписок по полю price) - вычисление на уровне базы данных
         response.data = response_data # Присваиваем ответу новый словарь с результатами
         return response # Возвращаем ответ
